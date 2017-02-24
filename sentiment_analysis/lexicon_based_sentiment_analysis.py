@@ -96,7 +96,8 @@ review['lsentiment'] = se
 
 review.to_csv('airline_review_out.csv')
 
-# Run OLS regression
-import statsmodels.formula.api as sm
-results = sm.ols(formula = "recommended~lsentiment", data = review).fit()
-print(results.summary())
+# Run a Logistic regression
+import statsmodels.api as sm2
+logit = sm2.Logit(review['recommended'], review['lsentiment'])
+result = logit.fit()
+print(result.summary())
