@@ -20,7 +20,7 @@
     negative words from the number of positive words. A negative number
     indicate negative sentiment, a positive number indicates otherwise.
     
-5. Logistic Regression analysis is done to find out the dependency of
+6. Logistic Regression analysis is done to find out the dependency of
     recommended (whether the review author is going to recommend the
     airlines) and the sentiment of the review.
     Logistic Regression is chosen, because it's used for categorical
