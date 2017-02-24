@@ -22,7 +22,7 @@
     
 6. Logistic Regression analysis is done to find out the dependency of
     recommended (whether the review author is going to recommend the
-    airlines) and the sentiment of the review.
+    airlines) on the sentiment of the review.
     Logistic Regression is chosen, because it's used for categorical
     variable (binary)
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
