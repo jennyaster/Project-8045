@@ -1,0 +1,17 @@
+Optimization terminated successfully.
+         Current function value: 0.616695
+         Iterations 5
+                           Logit Regression Results                           
+==============================================================================
+Dep. Variable:            recommended   No. Observations:                41396
+Model:                          Logit   Df Residuals:                    41395
+Method:                           MLE   Df Model:                            0
+Date:                Fri, 24 Feb 2017   Pseudo R-squ.:                  0.1073
+Time:                        09:29:58   Log-Likelihood:                -25529.
+converged:                       True   LL-Null:                       -28599.
+                                        LLR p-value:                       nan
+==============================================================================
+                 coef    std err          z      P>|z|      [95.0% Conf. Int.]
+------------------------------------------------------------------------------
+lsentiment     0.1915      0.003     70.397      0.000         0.186     0.197
+==============================================================================
