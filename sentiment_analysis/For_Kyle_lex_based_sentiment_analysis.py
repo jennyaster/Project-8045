@@ -36,7 +36,7 @@ from nltk.corpus import stopwords
 from nltk.stem.snowball import SnowballStemmer
 
 # Import negative and positive words from General Inquirer dictionary 
-def sentiment_analysis(dictionary, csv_file): # Input dictionary txt file here 
+def sentiment_analysis(dictionary, review): # Input dictionary txt file here 
     positive = []
     negative = []
     
@@ -69,7 +69,6 @@ def sentiment_analysis(dictionary, csv_file): # Input dictionary txt file here
        
     
     '''Import airline reviews from csv file'''
-    review = pd.read_csv(csv_file)
     review.columns.values
     review['reviewcontent']
     
