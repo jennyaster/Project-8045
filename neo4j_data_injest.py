@@ -1,5 +1,3 @@
-# This is for Python3
-
 import py2neo
 from py2neo import Graph
 import bson
@@ -348,7 +346,8 @@ def load_database():
     
     # Create relationships between reviewers and airlines
     print("Creating Review and Airline Relationships")
-    transaction.begin()
+    transaction = graph.begin()
+    
     for relationship in airline_list:
         
         airline = relationship[0]
