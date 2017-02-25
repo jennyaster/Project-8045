@@ -36,11 +36,11 @@ from nltk.corpus import stopwords
 from nltk.stem.snowball import SnowballStemmer
 
 # Import negative and positive words from General Inquirer dictionary 
-def sentiment_analysis(dictionary, review): # Input dictionary txt file here 
+def sentiment_analysis(review): # Input dictionary txt file here 
     positive = []
     negative = []
     
-    with open(dictionary) as fin:
+    with open('general_inquirer_dict.txt') as fin:
         reader = csv.DictReader(fin, delimiter = '\t')
         for i, line in enumerate(reader):
             '''Combining positive and negative words of different senses into 
