@@ -383,7 +383,7 @@ def load_database():
     
     transaction.commit()
     
-        print("Running Sentiment Analysis")
+    print("Running Sentiment Analysis")
     query = """MATCH (r:Review)
                 RETURN r._id,r.reviewcontent,r.recommended"""
     
@@ -452,6 +452,33 @@ def load_database():
                 
         transaction.run(query)
     transaction.commit()
+    
+    print("Finding Customer Preferences By Airlines")
+    
+    query = """MATCH (a:Airline)<-[:Reviewed]-(r:Review)
+                with a,avg(toFloat(r.seat_imp)) as seat_imp,avg(toFloat(r.staff_imp)) as staff_imp,avg(toFloat(r.entertain_imp)) 
+                as ent_imp, avg(toFloat(r.food_imp)) as food_imp, avg(toFloat(r.value_imp)) as value_imp
+                SET a.avg_seat_imp = seat_imp,a.avg_staff_imp = staff_imp, a.avg_entertain_imp = ent_imp,a.avg_food_imp = food_imp,
+                a.avg_value_imp = value_imp"""
+                
+    query = """Match p=((a:Airline)<-[]-(r1)<-[]-()-[]->(r2)-[]->(a2:Airline))
+                WHERE NOT a = a2
+                WITH a,a2,
+                avg(toFloat(r1.seat_imp)) as seat_imp_a,
+                avg(toFloat(r2.seat_imp)) as seat_imp_a2,
+                avg(toFloat(r1.staff_imp)) as staff_imp_a,
+                avg(toFloat(r2.staff_imp)) as staff_imp_a2,
+                avg(toFloat(r1.entertain_imp)) as ent_imp_a,
+                avg(toFloat(r2.entertain_imp)) as ent_imp_a2,
+                avg(toFloat(r1.food_imp)) as food_imp_a,
+                avg(toFloat(r2.food_imp)) as food_imp_a2,
+                avg(toFloat(r1.value_imp)) as value_imp_a,
+                avg(toFloat(r2.value_imp)) as value_imp_a2
+                RETURN a,a2,seat_imp_a,seat_imp_a2,staff_imp_a,staff_imp_a2,ent_imp_a,ent_imp_a2,food_imp_a,food_imp_a2,value_imp_a,value_imp_a2"""
+    
+    graph.run(query)
+    
+    
     
 if __name__ == "__main__":
     load_database()
