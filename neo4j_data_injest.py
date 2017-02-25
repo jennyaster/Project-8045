@@ -1,17 +1,118 @@
 import py2neo
 from py2neo import Graph
 import bson
+import pandas as pd
+import csv
 import nltk
 from multiprocess import parallel_by_function
 from nltk.stem.snowball import SnowballStemmer
 from nltk import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
 from statsmodels.graphics.tukeyplot import results
+from collections import Counter
+import operator
 
 py2neo.authenticate("localhost:7474", "neo4j", "classroom")
 graph = Graph("http://localhost:7474/db/data/")
 
 PATH = "C:\\Users\\Kyle\\Desktop\\Airline\\reviews.bson"
+PATH_DICT = "C:\\Users\\Kyle\\Desktop\\Airline\\dictionary.txt"
+
+def sentiment_analysis(review): # Input dictionary txt file here 
+    positive = []
+    negative = []
+    
+    with open(PATH_DICT) as fin:
+        reader = csv.DictReader(fin, delimiter = '\t')
+        for i, line in enumerate(reader):
+            '''Combining positive and negative words of different senses into 
+            definitive polars (neg or pos)'''
+            if line['Negativ'] == 'Negativ':
+                if line['Entry'].find('#') == -1:
+                    negative.append(line['Entry'].lower())
+                if line['Entry'].find('#') != -1:
+                    negative.append(line['Entry'].
+                                    lower()[:line['Entry'].index('#')])
+                
+        if line['Positiv'] == 'Positiv':
+            if line['Positiv'].find('#') == -1:
+                positive.append(line['Entry'].lower())
+            if line['Entry'].find('#') != -1:
+                positive.append(line['Entry'].
+                                lower()[:line['Entry'].index('#')])
+
+    fin.close()
+        
+    pvocabulary = sorted(list(set(positive)))
+    nvocabulary = sorted(list(set(negative)))                  
+
+    
+    # Sort positive and negative word list
+       
+    
+    '''Import airline reviews from csv file'''
+    review.columns.values
+    review['reviewcontent']
+    
+    review['poswdcnt'] = 0
+    review['negwdcnt'] = 0
+    review['lsentiment'] = 0
+    review_index = 0
+    
+    
+    ''' Breaking sentences down into individual words (tokenizing)'''
+    def getWordList(text, word_proc = lambda x:x):
+        word_list = []
+        for sent in sent_tokenize(text):
+            for word in word_tokenize(sent):
+                word_list.append(word)
+        return word_list 
+    
+    
+    stemmer = SnowballStemmer('english')
+    
+    pcount_list = []
+    ncount_list = []
+    lsenti_list = []
+    for text in review['reviewcontent']:
+        vocabulary = getWordList(text, lambda x:x.lower())
+        
+        #Removing words with only 1 letter
+        vocabulary = [word for word in vocabulary if len(word) > 1]
+        #Remove stop words
+        vocabulary = [word for word in vocabulary
+                      if not word in stopwords.words('english')]
+        
+        # Stemming words, i.e. grouping same words of different tenses or forms 
+        vocabulary= [stemmer.stem(word) for word in vocabulary]
+    
+        pcount = 0
+        ncount = 0
+        
+        for pword in pvocabulary:
+            pcount += vocabulary.count(pword)
+        for nword in nvocabulary:
+            ncount += vocabulary.count(nword)
+        
+        pcount_list.append(pcount)
+        ncount_list.append(ncount)
+        lsenti_list.append(pcount - ncount)
+            
+        review.loc[review_index, 'poswdcnt'] = pcount 
+        review.loc[review_index, 'negwdcnt'] = ncount 
+        review.loc[review_index, 'lsentiment'] = pcount - ncount
+         
+        
+        review_index += 1
+    
+    se = pd.Series(pcount_list)
+    review['poswdcnt'] = se 
+    se = pd.Series(ncount_list)
+    review['negwdcnt'] = se
+    se = pd.Series(lsenti_list)
+    review['lsentiment'] = se 
+    
+    return review
 
 def getWordList(text, word_proc = lambda x:x):
     word_list = []
@@ -281,5 +382,76 @@ def load_database():
             transaction.run(query)
     
     transaction.commit()
+    
+        print("Running Sentiment Analysis")
+    query = """MATCH (r:Review)
+                RETURN r._id,r.reviewcontent,r.recommended"""
+    
+    results = graph.run(query)
+    labels = ["_id","reviewcontent","recommended"]
+    rows1 = []
+    rows2 = []
+    rows3 = []
+    rows4 = []
+    for index,result in enumerate(results):
+        row = [result["r._id"],result["r.reviewcontent"],result["r.recommended"]]
+        if index < 10000:
+            rows1.append(row)
+        elif index < 20000:
+            rows2.append(row)
+        elif index < 30000:
+            rows3.append(row)
+        else:
+            rows4.append(row)
+    dataframe1 = pd.DataFrame.from_records(rows1, columns=labels)
+    dataframe2 = pd.DataFrame.from_records(rows2, columns=labels)
+    dataframe3 = pd.DataFrame.from_records(rows3, columns=labels)
+    dataframe4 = pd.DataFrame.from_records(rows4, columns=labels)
+    
+    functions = [sentiment_analysis]
+    data_sets = [dataframe1,dataframe2,dataframe3,dataframe4]
+    data_sets = parallel_by_function(data_sets, functions, cores=4, chunk=False)
+    
+    dataframe1 = data_sets[0]
+    dataframe2 = data_sets[1]
+    dataframe3 = data_sets[2]
+    dataframe4 = data_sets[3]
+    
+    transaction = graph.begin()
+    for index,row in dataframe1.iterrows():
+        
+        query = """MATCH (r:Review {_id: '""" + row["_id"] + """'})
+                        SET r.sentiment = '""" + str(row["lsentiment"]) + "'"
+                
+        transaction.run(query)
+    transaction.commit()
+    
+    transaction = graph.begin()
+    for index,row in dataframe2.iterrows():
+        
+        query = """MATCH (r:Review {_id: '""" + row["_id"] + """'})
+                        SET r.sentiment = '""" + str(row["lsentiment"]) + "'"
+                
+        transaction.run(query)
+    transaction.commit()
+    
+    transaction = graph.begin()
+    for index,row in dataframe3.iterrows():
+        
+        query = """MATCH (r:Review {_id: '""" + row["_id"] + """'})
+                        SET r.sentiment = '""" + str(row["lsentiment"]) + "'"
+                
+        transaction.run(query)
+    transaction.commit()
+    
+    transaction = graph.begin()
+    for index,row in dataframe4.iterrows():
+        
+        query = """MATCH (r:Review {_id: '""" + row["_id"] + """'})
+                        SET r.sentiment = '""" + str(row["lsentiment"]) + "'"
+                
+        transaction.run(query)
+    transaction.commit()
+    
 if __name__ == "__main__":
     load_database()
