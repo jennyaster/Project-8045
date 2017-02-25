@@ -1,0 +1,5 @@
+('Positive Precision', 0.8798570790531487)
+('Negative Precision', 0.8080405650126765)
+('Positive Recall', 0.788)
+('Negative Recall', 0.8924)
+('G-Performance', 0.8861063465222614)
