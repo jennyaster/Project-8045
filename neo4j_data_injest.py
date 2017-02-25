@@ -274,115 +274,6 @@ def load_database():
     
     transaction = graph.begin()
     
-    # Create relationships between reviewers and airlines
-    print("Creating Review and Airline Relationships")
-    for relationship in airline_list:
-        
-        airline = relationship[0]
-        userid = relationship[1]
-        query = """Match (a:Airline {airline_name:'""" + airline + """'}), (r:Review {_id: '""" + str(userid) + """'})
-                    CREATE UNIQUE (a)<-[:Reviewed]-(r)"""
-        
-        transaction.run(query)
-        
-    transaction.commit() #Upload relationship between the reviewer and the airlines
-    
-    
-    query = """Match p=((a:Airline)<-[]-(r1)<-[]-()-[]->(r2)-[]->(a2:Airline))
-                WHERE NOT a = a2
-                WITH COUNT(DISTINCT p) as total,a,a2,
-                AVG(toFloat(r2.rating_overall)) as rrating,
-                AVG(toFloat(r1.rating_overall)) as lrating,
-                AVG(toFloat(r2.rating_inflightEnt)) as r_inflightent,
-                AVG(toFloat(r1.rating_inflightEnt)) as l_inflightent,
-                AVG(toFloat(r1.rating_seatcomfort)) as l_seatcomfort,
-                AVG(toFloat(r2.rating_seatcomfort)) as r_seatcomfort,
-                AVG(toFloat(r1.rating_valuemoney)) as l_valuemoney,
-                AVG(toFloat(r2.rating_valuemoney)) as r_valuemoney,
-                AVG(toFloat(r2.rating_foodbeverage)) as r_foodbev,
-                AVG(toFloat(r1.rating_foodbeverage)) as l_foodbev,
-                SUM(toFloat(r1.recommended))/COUNT(r1.recommended) as l_recommend,
-                SUM(toFloat(r2.recommended))/COUNT(r2.recommended) as r_recommend,
-                AVG(toFloat(r1.rating_cabinstaff)) as l_staff,
-                AVG(toFloat(r2.rating_cabinstaff)) as r_staff
-                WHERE NOT rrating IS NULL AND NOT lrating IS NULL
-                CREATE UNIQUE (a)-[:Competes_with {
-                shared_reviewers: total,
-                focus_avg_review: lrating,
-                focus_avg_inflight_ent: l_inflightent,
-                focus_avg_seatcomfort: l_seatcomfort,
-                focus_avg_valuemoney: l_valuemoney,
-                focus_avg_foodbeverage: l_foodbev,
-                focus_recommended: l_recommend,
-                focus_avg_staff: l_staff,
-                competitor_avg_review: rrating,
-                competitor_avg_inflight_ent: r_inflightent,
-                competitor_avg_seatcomfort: r_seatcomfort,
-                competitor_avg_valuemoney: r_valuemoney,
-                competitor_avg_foodbeverage: r_foodbev,
-                competitor_recommended: r_recommend,
-                competitor_avg_staff: r_staff
-                }]->(a2)"""
-    
-    print("Linking Airlines to Competitors")
-    graph.run(query)  #Query to link all airlines with shared reviewers
-    
-    query = """MATCH (a:Airline)-[u:Competes_with]->(a1)
-                WITH a,avg(u.focus_avg_review) as numerator, avg(u.competitor_avg_review) as divisor
-                SET a.adjusted_rating = (numerator/divisor)"""
-                
-    graph.run(query)
-    
-    query = """MATCH (r:Review)
-                RETURN r._id,r.reviewcontent"""
-    
-    print("Analyzing User Preferences") 
-    result = graph.run(query)
-    results = []
-    for record in result:
-        results.append([record['r._id'],record['r.reviewcontent']])
-    
-    functions = [analyze_text,upload_text_preference]
-    data_sets = [results]
-    parallel_by_function(data_sets, functions, cores=4, chunk=True)
-    
-    print("Identifying Main Airline Competitors")
-    query = """MATCH (a:Airline)-[r:Competes_with]-(c:Airline)
-                WITH a,max(r.shared_reviewers) as total
-                MATCH (a)-[r {shared_reviewers: total}]->(c:Airline)
-                WHERE total >= 5
-                RETURN a.airline_name,c.airline_name
-                ORDER BY a.airline_name"""
-    
-    results = graph.run(query)
-    airline_list = []
-    airlines = []
-    for index1,result in enumerate(results):
-        airline = result['a.airline_name']
-        competitor = result['c.airline_name']
-        if index1 == 0:
-            airline_list.append([airline,[competitor]])
-            airlines.append(airline)
-        else:
-            if airline in airlines:
-                airline_list[airlines.index(airline)][1].append(competitor)
-            else:
-                airline_list.append([airline,[competitor]])
-                airlines.append(airline)
-    
-    transaction = graph.begin()
-    
-    for airline in airline_list:
-        count=1
-        for competitor in airline[1]:
-            query = """MATCH (a:Airline {airline_name: '""" + airline[0] + """'})
-                    SET a.main_competitor""" + str(count) + """ = '""" + competitor + "'"
-            count += 1
-            
-            transaction.run(query)
-    
-    transaction.commit()
-    
     print("Running Sentiment Analysis")
     query = """MATCH (r:Review)
                 RETURN r._id,r.reviewcontent,r.recommended"""
@@ -451,6 +342,119 @@ def load_database():
                         SET r.sentiment = '""" + str(row["lsentiment"]) + "'"
                 
         transaction.run(query)
+    transaction.commit()
+    
+    # Create relationships between reviewers and airlines
+    print("Creating Review and Airline Relationships")
+    for relationship in airline_list:
+        
+        airline = relationship[0]
+        userid = relationship[1]
+        query = """Match (a:Airline {airline_name:'""" + airline + """'}), (r:Review {_id: '""" + str(userid) + """'})
+                    CREATE UNIQUE (a)<-[:Reviewed]-(r)"""
+        
+        transaction.run(query)
+        
+    transaction.commit() #Upload relationship between the reviewer and the airlines
+    
+    
+    query = """Match p=((a:Airline)<-[]-(r1)<-[]-()-[]->(r2)-[]->(a2:Airline))
+                WHERE NOT a = a2
+                WITH COUNT(DISTINCT p) as total,a,a2,
+                AVG(toFloat(r2.rating_overall)) as rrating,
+                AVG(toFloat(r1.rating_overall)) as lrating,
+                AVG(toFloat(r2.rating_inflightEnt)) as r_inflightent,
+                AVG(toFloat(r1.rating_inflightEnt)) as l_inflightent,
+                AVG(toFloat(r1.rating_seatcomfort)) as l_seatcomfort,
+                AVG(toFloat(r2.rating_seatcomfort)) as r_seatcomfort,
+                AVG(toFloat(r1.rating_valuemoney)) as l_valuemoney,
+                AVG(toFloat(r2.rating_valuemoney)) as r_valuemoney,
+                AVG(toFloat(r2.rating_foodbeverage)) as r_foodbev,
+                AVG(toFloat(r1.rating_foodbeverage)) as l_foodbev,
+                SUM(toFloat(r1.recommended))/COUNT(r1.recommended) as l_recommend,
+                SUM(toFloat(r2.recommended))/COUNT(r2.recommended) as r_recommend,
+                AVG(toFloat(r1.rating_cabinstaff)) as l_staff,
+                AVG(toFloat(r2.rating_cabinstaff)) as r_staff,
+                AVG(toFloat(r1.sentiment)) as l_sentiment,
+                AVG(toFloat(r2.sentiment)) as r_sentiment
+                WHERE NOT rrating IS NULL AND NOT lrating IS NULL
+                CREATE UNIQUE (a)-[:Competes_with {
+                shared_reviewers: total,
+                focus_avg_review: lrating,
+                focus_avg_inflight_ent: l_inflightent,
+                focus_avg_seatcomfort: l_seatcomfort,
+                focus_avg_valuemoney: l_valuemoney,
+                focus_avg_foodbeverage: l_foodbev,
+                focus_recommended: l_recommend,
+                focus_avg_staff: l_staff,
+                focus_avg_sentiment: l_sentiment,
+                competitor_avg_review: rrating,
+                competitor_avg_inflight_ent: r_inflightent,
+                competitor_avg_seatcomfort: r_seatcomfort,
+                competitor_avg_valuemoney: r_valuemoney,
+                competitor_avg_foodbeverage: r_foodbev,
+                competitor_recommended: r_recommend,
+                competitor_avg_staff: r_staff,
+                competitor_avg_sentiment: r_sentiment
+                }]->(a2)"""
+    
+    print("Linking Airlines to Competitors")
+    graph.run(query)  #Query to link all airlines with shared reviewers
+    
+    query = """MATCH (a:Airline)-[u:Competes_with]->(a1)
+                WITH a,avg(u.focus_avg_review) as numerator, avg(u.competitor_avg_review) as divisor
+                SET a.adjusted_rating = (numerator/divisor)"""
+                
+    graph.run(query)
+    
+    query = """MATCH (r:Review)
+                RETURN r._id,r.reviewcontent"""
+    
+    print("Analyzing User Preferences") 
+    result = graph.run(query)
+    results = []
+    for record in result:
+        results.append([record['r._id'],record['r.reviewcontent']])
+    
+    functions = [analyze_text,upload_text_preference]
+    data_sets = [results]
+    parallel_by_function(data_sets, functions, cores=4, chunk=True)
+    
+    print("Identifying Main Airline Competitors")
+    query = """MATCH (a:Airline)-[r:Competes_with]-(c:Airline)
+                WITH a,max(r.shared_reviewers) as total
+                MATCH (a)-[r {shared_reviewers: total}]->(c:Airline)
+                WHERE total >= 5
+                RETURN a.airline_name,c.airline_name
+                ORDER BY a.airline_name"""
+    
+    results = graph.run(query)
+    airline_list = []
+    airlines = []
+    for index1,result in enumerate(results):
+        airline = result['a.airline_name']
+        competitor = result['c.airline_name']
+        if index1 == 0:
+            airline_list.append([airline,[competitor]])
+            airlines.append(airline)
+        else:
+            if airline in airlines:
+                airline_list[airlines.index(airline)][1].append(competitor)
+            else:
+                airline_list.append([airline,[competitor]])
+                airlines.append(airline)
+    
+    transaction = graph.begin()
+    
+    for airline in airline_list:
+        count=1
+        for competitor in airline[1]:
+            query = """MATCH (a:Airline {airline_name: '""" + airline[0] + """'})
+                    SET a.main_competitor""" + str(count) + """ = '""" + competitor + "'"
+            count += 1
+            
+            transaction.run(query)
+    
     transaction.commit()
     
     print("Finding Customer Preferences By Airlines")
