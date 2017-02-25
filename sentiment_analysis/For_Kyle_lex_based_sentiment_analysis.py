@@ -132,7 +132,6 @@ def sentiment_analysis(review): # Input dictionary txt file here
     
     return review
 
-dictionary = 'general_inquirer_dict.txt' 
 csv_file = 'airline_review.csv'
 sentiment_analysis(dictionary, csv_file)
 
