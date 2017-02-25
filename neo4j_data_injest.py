@@ -15,8 +15,8 @@ import operator
 py2neo.authenticate("localhost:7474", "neo4j", "classroom")
 graph = Graph("http://localhost:7474/db/data/")
 
-PATH = "C:\\Users\\Kyle\\Desktop\\Airline\\reviews.bson"
-PATH_DICT = "C:\\Users\\Kyle\\Desktop\\Airline\\dictionary.txt"
+PATH = "E:\\Documents\\GSU\\CIS 8045 Unstructured Data\\Project\\Airline\\reviews.bson"
+PATH_DICT = "E:\\Documents\\GSU\\Python Development\\Unstructured Data\\Team Project\\lex_based_text_analysis\\general_inquirer_dict.txt"
 
 def sentiment_analysis(review): # Input dictionary txt file here 
     positive = []
@@ -346,6 +346,7 @@ def load_database():
     
     # Create relationships between reviewers and airlines
     print("Creating Review and Airline Relationships")
+    transaction.begin()
     for relationship in airline_list:
         
         airline = relationship[0]
