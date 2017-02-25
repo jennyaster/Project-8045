@@ -16,15 +16,16 @@
     negative word list. The number of negative words and positive words
     in each review are counted.
     
-5. The sentiment of the review are calculated by subtract the number of
-    negative words from the number of positive words. A negative number
-    indicate negative sentiment, a positive number indicates otherwise.
+5. The sentiment of the review (lsentiment) is calculated by subtract the 
+    number of negative words (ncount) from the number of positive words 
+    (pcount). A negative lsentiment indicates negative sentiment, a 
+    positive number indicates otherwise.
     
 6. Logistic Regression analysis is done to find out the dependency of
     recommended (whether the review author is going to recommend the
-    airlines) on the sentiment of the review.
-    Logistic Regression is chosen, because it's used for categorical
-    variable (binary)
+    airlines) on the sentiment of the review (whether recommended 
+    depends on lsentiment). Logistic Regression is chosen, because 
+    it's used for categorical variable (binary).
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 import pandas as pd
 import csv 
